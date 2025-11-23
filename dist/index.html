@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>분배 계산기</title>
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://unpkg.com/vue@3.5.12/dist/vue.global.prod.js"></script>
+		<style>
+			html, body { font-family: 'Pretendard', ui-sans-serif, system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; }
+			input[type="number"]::-webkit-outer-spin-button,
+			input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+			input[type="number"] { -moz-appearance: textfield; }
+			/* Subtle vertical separators between table cells */
+			table.table-separated thead th + th,
+			table.table-separated tbody td + td,
+			table.table-separated tfoot td + td {
+				border-left: 1px solid rgba(148, 163, 184, 0.28); /* slate-400 @ 28% */
+			}
+			/* Optional: rounded corners respect for sticky headers */
+			table.table-separated thead th:first-child { border-top-left-radius: 0.75rem; }
+			table.table-separated thead th:last-child { border-top-right-radius: 0.75rem; }
+		</style>
+	</head>
+	<body class="bg-slate-50">
+		<div id="app" class="mx-auto max-w-6xl p-6 space-y-8">
+			<header class="flex items-center justify-between">
+				<div>
+					<h1 class="text-2xl font-semibold text-slate-800">분배 계산기_v1.0.0</h1>
+				</div>
+				<div class="flex items-center gap-2 text-sm text-slate-500">
+					<span>총 예산</span>
+					<span class="px-2 py-1 rounded bg-white shadow-sm font-semibold text-slate-800">{{ formatCurrency(totalBudget) }}</span>
+				</div>
+			</header>
+			<!-- Left sidebar removed -->
+			<!-- Right sidebar removed -->
+
+			<section class="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
+				<div class="flex items-center flex-wrap gap-4">
+					<div class="flex items-center gap-2">
+						<span class="text-slate-700 font-medium">저장슬롯 1</span>
+						<button @click="saveSlot(1)" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm hover:bg-slate-50">저장</button>
+						<button @click="loadSlot(1)" :disabled="!slotMeta[1]" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-slate-900">불러오기</button>
+						<button @click="clearSlot(1)" :disabled="!slotMeta[1]" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm hover:bg-slate-50 disabled:opacity-40">삭제</button>
+						<span v-if="slotMeta[1]" class="text-xs text-slate-400">{{ slotMeta[1] }}</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<span class="text-slate-700 font-medium">저장슬롯 2</span>
+						<button @click="saveSlot(2)" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm hover:bg-slate-50">저장</button>
+						<button @click="loadSlot(2)" :disabled="!slotMeta[2]" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-slate-900">불러오기</button>
+						<button @click="clearSlot(2)" :disabled="!slotMeta[2]" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm hover:bg-slate-50 disabled:opacity-40">삭제</button>
+						<span v-if="slotMeta[2]" class="text-xs text-slate-400">{{ slotMeta[2] }}</span>
+					</div>
+					<div class="flex items-center gap-2">
+						<span class="text-slate-700 font-medium">저장슬롯 3</span>
+						<button @click="saveSlot(3)" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm hover:bg-slate-50">저장</button>
+						<button @click="loadSlot(3)" :disabled="!slotMeta[3]" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-slate-900">불러오기</button>
+						<button @click="clearSlot(3)" :disabled="!slotMeta[3]" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm hover:bg-slate-50 disabled:opacity-40">삭제</button>
+						<span v-if="slotMeta[3]" class="text-xs text-slate-400">{{ slotMeta[3] }}</span>
+					</div>
+				</div>
+			</section>
+
+			<section class="bg-white rounded-xl shadow-sm border border-slate-100">
+				<div class="p-5 border-b border-slate-100 flex items-center justify-between">
+					<h2 class="font-semibold text-slate-800 flex items-center gap-3">
+						<span class="inline-block w-1.5 h-6 rounded-full bg-slate-300"></span>
+						<span>입력 항목</span>
+					</h2>
+					<button @click="addItem" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800">
+						<span>행 추가</span>
+					</button>
+				</div>
+				<div class="overflow-x-auto">
+					<table class="min-w-full text-sm table-separated">
+						<thead class="bg-slate-50 sticky top-0 z-10 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/75">
+							<tr class="text-left text-slate-600">
+								<th class="px-5 py-3 w-40">항목</th>
+								<th class="px-5 py-3 w-48">금액(수수료 전)</th>
+								<th class="px-5 py-3 w-28">거래방식</th>
+								<th class="px-5 py-3 w-48">금액(수수료 후)</th>
+								<th class="px-5 py-3"></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="(it, idx) in items" :key="idx" class="border-t border-slate-100 odd:bg-white even:bg-slate-50/40 hover:bg-slate-50/80 transition-colors">
+								<td class="px-5 py-3">
+									<input v-model="it.name" class="w-full rounded-lg border-slate-200 focus:border-slate-400 focus:ring-slate-400" type="text" placeholder="항목">
+								</td>
+								<td class="px-5 py-3">
+									<div class="flex items-center gap-2">
+										<input
+											:value="formatInput(it.amount)"
+											@input="onCurrencyInput($event, it, 'amount')"
+											@blur="onCurrencyBlur($event, it, 'amount')"
+											class="w-full rounded-lg border-slate-200 focus:border-slate-400 focus:ring-slate-400 text-right"
+											type="text"
+											inputmode="numeric"
+											placeholder="0"
+										>
+									</div>
+								</td>
+								<td class="px-5 py-3">
+									<select
+										:value="it.method ?? '교환'"
+										@change="it.method = $event.target.value"
+										class="w-full rounded-lg border-slate-200 focus:border-slate-400 focus:ring-slate-400 bg-white text-slate-800"
+									>
+										<option value="교환">교환</option>
+										<option value="교환(99수작)">교환(99수작)</option>
+										<option value="교환(499수작)">교환(499수작)</option>
+										<option value="교환(999수작)">교환(999수작)</option>
+										<option value="택배">택배</option>
+										<option value="수수료없음">수수료없음</option>
+									</select>
+								</td>
+								<td class="px-5 py-3">
+									<div class="text-right font-medium text-slate-800">{{ formatCurrency(netAmount(it)) }}</div>
+								</td>
+								<td class="px-5 py-3 text-right">
+									<button @click="removeItem(idx)" class="px-2 py-1 text-slate-500 hover:text-red-600">삭제</button>
+								</td>
+							</tr>
+						</tbody>
+						<tfoot>
+							<tr class="bg-slate-50 border-t border-slate-200 font-semibold text-slate-800">
+								<td class="px-5 py-3">합계</td>
+								<td class="px-5 py-3 text-right">{{ formatCurrency(totalBudget) }}</td>
+								<td class="px-5 py-3"></td>
+								<td class="px-5 py-3"></td>
+								<td></td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+			</section>
+
+			<section class="bg-white rounded-xl shadow-sm border border-slate-100">
+				<div class="p-5 border-b border-slate-100 flex items-center justify-between">
+					<h2 class="font-semibold text-slate-800 flex items-center gap-3">
+						<span class="inline-block w-1.5 h-6 rounded-full bg-slate-300"></span>
+						<span>분배표</span>
+					</h2>
+					<div class="flex items-center gap-2">
+						<button @click="addRecipient" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800">행 추가</button>
+						<!-- <button @click="resetToDefaults" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 bg-white text-sm hover:bg-slate-50">기본값 복원</button> -->
+					</div>
+				</div>
+				<div class="overflow-x-auto">
+					<table class="min-w-full text-sm table-separated">
+						<thead class="bg-slate-50 sticky top-0 z-10 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/75">
+							<tr class="text-left text-slate-600">
+								<th class="px-5 py-3 w-16">구분</th>
+								<th class="px-5 py-3 w-40">닉네임</th>
+								<th class="px-5 py-3 w-32">분배율</th>
+								<th class="px-5 py-3">기본분배</th>
+								<th class="px-5 py-3 w-40">추가분배</th>
+								<th class="px-5 py-3">수령 분배금</th>
+								<th class="px-5 py-3 w-40">비고</th>
+								<!-- <th class="px-5 py-3">합산 분배금</th> -->
+								<th class="px-5 py-3"></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="(r, idx) in rows" :key="idx" class="border-t border-slate-100 odd:bg-white even:bg-slate-50/40 hover:bg-slate-50/80 transition-colors">
+								<td class="px-5 py-3">
+									<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">{{ idx + 1 }}</span>
+								</td>
+								<td class="px-5 py-3">
+									<input v-model="recipients[idx].nickname" class="w-full rounded-lg border-slate-200 focus:border-slate-400 focus:ring-slate-400" type="text" placeholder="닉네임">
+								</td>
+								<td class="px-5 py-3">
+									<div class="flex items-center gap-2">
+										<input
+											:value="recipients[idx].weightInput ?? ''"
+											@input="onPercentInput($event, recipients[idx])"
+											@blur="onPercentBlur($event, recipients[idx])"
+											class="w-full rounded-lg border-slate-200 focus:border-slate-400 focus:ring-slate-400 text-right"
+											type="text"
+											inputmode="decimal"
+											placeholder="100"
+										>
+										<span class="text-slate-500">%</span>
+									</div>
+								</td>
+								<td class="px-5 py-3">
+									<div class="text-right font-medium text-slate-800">{{ formatCurrency(r.variable) }}</div>
+								</td>
+								<td class="px-5 py-3">
+									<div class="flex items-center gap-2">
+										<input
+											:value="formatInput(recipients[idx].base)"
+											@input="onCurrencyInput($event, recipients[idx], 'base')"
+											@blur="onCurrencyBlur($event, recipients[idx], 'base')"
+											class="w-full rounded-lg border-slate-200 focus:border-slate-400 focus:ring-slate-400 text-right"
+											type="text"
+											inputmode="numeric"
+											placeholder="0"
+										>
+									</div>
+								</td>
+								<td class="px-5 py-3">
+									<div class="text-right font-semibold text-emerald-700">{{ formatCurrency(r.total) }}</div>
+								</td>
+								<td class="px-5 py-3">
+									<input v-model="recipients[idx].memo" class="w-full rounded-lg border-slate-200 focus:border-slate-400 focus:ring-slate-400" type="text" placeholder="비고">
+								</td>
+								<!-- <td class="px-5 py-3">
+									<div class="text-right font-semibold text-slate-800">{{ formatCurrency(r.final) }}</div>
+								</td> -->
+								<td class="px-5 py-3 text-right">
+									<button @click="removeRecipient(idx)" class="px-2 py-1 text-slate-500 hover:text-red-600">삭제</button>
+								</td>
+							</tr>
+						</tbody>
+						<tfoot>
+							<tr class="bg-slate-50 border-t border-slate-200 font-semibold text-slate-800">
+								<td class="px-5 py-3">합계</td>
+								<td class="px-5 py-3"></td>
+								<!-- <td class="px-5 py-3 text-right">{{ totals.weight.toFixed(1) }}</td> -->
+								<td class="px-5 py-3 text-right"></td>
+								<td class="px-5 py-3 text-right">{{ formatCurrency(totals.variable) }}</td>
+								<td class="px-5 py-3 text-right">{{ formatCurrency(totals.base) }}</td>
+								<td class="px-5 py-3 text-right">{{ formatCurrency(totals.total) }}</td>
+								<td class="px-5 py-3"></td>
+								<!-- <td class="px-5 py-3 text-right">{{ formatCurrency(totals.final) }}</td> -->
+								<td></td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+				<div class="px-5 py-4 border-t border-slate-100 text-sm text-slate-600 grid grid-cols-1 gap-2 md:grid-cols-3">
+					<div>가용 분배금(총 예산 - 추가분배 합계): <span class="font-medium text-slate-900">{{ formatCurrency(variablePool) }}</span></div>
+					<div>가중치 합계: <span class="font-medium text-slate-900">{{ totals.weight.toFixed(1) }}</span></div>
+					<div>결과 합계(수령/합산): <span class="font-medium text-slate-900">{{ formatCurrency(totals.final) }}</span></div>
+				</div>
+			</section>
+
+			<!-- Bottom AdSense area -->
+			<section class="max-w-5xl mx-auto w-full">
+				<div class="mt-6 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+					<div class="p-3">
+						<!-- 스폰서 링크 -->
+						<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7156702798550615"
+							crossorigin="anonymous"></script>
+						<ins class="adsbygoogle"
+							style="display:block"
+							data-ad-format="autorelaxed"
+							data-ad-client="ca-pub-7156702798550615"
+							data-ad-slot="4795837151"></ins>
+						<script>
+							(adsbygoogle = window.adsbygoogle || []).push({});
+						</script> -->
+						
+						<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7156702798550615"
+							crossorigin="anonymous"></script>
+						<!-- 디스플레이-반응형 -->
+						<ins class="adsbygoogle"
+							style="display:block"
+							data-ad-client="ca-pub-7156702798550615"
+							data-ad-slot="9856592145"
+							data-ad-format="auto"
+							data-full-width-responsive="true"></ins>
+						<script>
+							(adsbygoogle = window.adsbygoogle || []).push({});
+						</script>
+					</div>
+				</div>
+			</section>
+		</div>
+
+		<script src="app.obf.js"></script>
+	</body>
+	</html>
+
+
