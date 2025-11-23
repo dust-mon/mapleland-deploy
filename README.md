@@ -4,15 +4,27 @@ Vue.js 프로젝트를 GitHub Pages로 배포하는 저장소입니다.
 
 ## 배포 방법
 
-### 수동 배포
+### 🚀 자동 배포 (권장)
 
-이미 gh-pages 브랜치가 설정되어 있습니다. 아래 명령어로 푸시하세요:
+`main` 브랜치에 코드를 푸시하면 GitHub Actions가 자동으로 배포합니다:
+
+```bash
+git add .
+git commit -m "Update content"
+git push origin main
+```
+
+푸시 후 GitHub Actions 탭에서 배포 진행 상황을 확인할 수 있습니다.
+
+### 수동 배포 (옵션 1)
+
+gh-pages 브랜치를 직접 푸시:
 
 ```bash
 git push origin gh-pages
 ```
 
-### 자동 배포 스크립트 사용
+### 수동 배포 (옵션 2) - 로컬 스크립트
 
 ```bash
 chmod +x deploy.sh
