@@ -31,7 +31,7 @@ jobs:
           git checkout main -- dist/
           
           # 기존 파일 제거 (dist 폴더 제외)
-          git rm -rf --ignore-unmatch *.html *.js *.txt .nojekyll 2>/dev/null || true
+          git rm -rf --ignore-unmatch *.html *.js *.txt 2>/dev/null || true
           
           # dist 폴더 내용을 루트로 이동
           if [ -d "dist" ]; then
