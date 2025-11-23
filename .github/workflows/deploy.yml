@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Deploy to GitHub Pages
+        run: |
+          # Git 설정
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # gh-pages 브랜치로 전환 (없으면 생성)
+          git checkout gh-pages || git checkout --orphan gh-pages
+          
+          # main 브랜치에서 dist 폴더 가져오기
+          git checkout main -- dist/
+          
+          # 기존 파일 제거 (dist 폴더 제외)
+          git rm -rf --ignore-unmatch *.html *.js *.txt 2>/dev/null || true
+          
+          # dist 폴더 내용을 루트로 이동
+          if [ -d "dist" ]; then
+            mv dist/* . 2>/dev/null || true
+            rm -rf dist 2>/dev/null || true
+          fi
+          
+          # 변경사항 커밋 및 푸시
+          git add -A
+          if git diff --staged --quiet; then
+            echo "변경사항이 없습니다"
+          else
+            git commit -m "Deploy to GitHub Pages - $(date '+%Y-%m-%d %H:%M:%S')"
+            git push origin gh-pages
+          fi
+      
+      - name: Display deployment info
+        run: |
+          echo "✅ 배포가 완료되었습니다!"
+          echo "🌐 사이트: https://dust-mon.github.io/mapleland-deploy/"
+
